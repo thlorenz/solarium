@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+CRATE_NAME=sol_logging
+CRATE_ROOT=$DIR/../program
+
+ROOT=$DIR/../..
+TARGET=$ROOT/target
+DEPLOY=$TARGET/deploy
+PROGRAM_FILE=$DEPLOY/$CRATE_NAME.so
+KEYPAIR_FILE=$DEPLOY/$CRATE_NAME-keypair.json
+PROGRAM_ID=$(solana-keygen pubkey $KEYPAIR_FILE)
+
+(cd $CRATE_ROOT && cargo build-bpf)
+
+pkill solana-test-validator > /dev/null
+sleep 1
+
+solana-test-validator -r                                                   \
+  --ledger /tmp/solarium-test-ledger                                       \
+  --bpf-program $PROGRAM_ID $PROGRAM_FILE \
+  > /dev/null &
+
+sleep 2
+solana logs

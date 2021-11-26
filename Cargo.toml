@@ -1,0 +1,5 @@
+[workspace]
+members=[
+  "logging/program",
+]
+exclude = []
