@@ -7,7 +7,7 @@
   "author": "Thorsten Lorenz <thlorenz@gmx.de>",
   "license": "MIT",
   "private": true,
-  "dependencies": {
-    "@solana/web3.js": "^1.31.0"
-  }
+  "workspaces": [
+    "vault"
+  ]
 }

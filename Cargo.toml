@@ -1,5 +1,7 @@
 [workspace]
 members=[
   "logging/program",
+  "vault/program",
+  "vault/rs-client",
 ]
 exclude = []
