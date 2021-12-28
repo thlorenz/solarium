@@ -4,11 +4,12 @@
   "scripts": {
     "client:ts": "esr ./ts-client/main.ts",
     "client:rs": "cd ./rs-client && cargo run",
+    "build:rs": "cd ./program && cargo build-bpf",
     "amman:start": "DEBUG=amman* amman validator .ammanrc.js ",
     "amman:stop": "pkill solana-test-validator"
   },
   "devDependencies": {
-    "@metaplex-foundation/amman": "^0.0.8",
+    "@metaplex-foundation/amman": "^0.0.9",
     "@solana/web3.js": "^1.31.0",
     "esbuild": "^0.14.8",
     "esbuild-runner": "^2.2.1"

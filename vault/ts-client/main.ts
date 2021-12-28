@@ -9,12 +9,19 @@ import {
   TransactionInstruction,
 } from '@solana/web3.js'
 import * as beet from '@metaplex-foundation/beet'
+import fs from 'fs/promises'
+import path from 'path'
 
 import { PROGRAM_ID } from '../.ammanrc.js'
 const programId = new PublicKey(PROGRAM_ID)
+const VAULT_SIZE = 32 // PubkeyBytes
 
 function accountMeta(pubkey: PublicKey, isSigner = false): AccountMeta {
   return { pubkey, isWritable: true, isSigner }
+}
+
+function accountMetaReadonly(pubkey: PublicKey, isSigner = false): AccountMeta {
+  return { pubkey, isWritable: false, isSigner }
 }
 
 const addressLabels = new AddressLabels(
@@ -24,11 +31,13 @@ const addressLabels = new AddressLabels(
 )
 
 type InstructionData = {
+  instruction: number
   vaultBumpSeed: number
   lamports: beet.bignum
 }
 
 const instructionDataStruct = new beet.BeetArgsStruct<InstructionData>([
+  ['instruction', beet.u8],
   ['vaultBumpSeed', beet.u8],
   ['lamports', beet.u64],
 ])
@@ -42,7 +51,7 @@ async function setupPayer(
   return [payerPubkey, payer]
 }
 
-async function main() {
+async function initVault() {
   const connection = new Connection(LOCALHOST, 'confirmed')
   const [payerPubkey, payer] = await setupPayer(connection)
 
@@ -53,14 +62,18 @@ async function main() {
   )
   addressLabels.addLabel('vaultPubkey', vaultPubkey)
 
-  const vaultSize = 1024
+  const vaultSize = VAULT_SIZE
   const lamports = await connection.getMinimumBalanceForRentExemption(vaultSize)
 
-  const ixData = { vaultBumpSeed, lamports }
+  const ixData = {
+    instruction: 0,
+    vaultBumpSeed,
+    lamports,
+  }
   const keys = [
     accountMeta(payerPubkey, true),
     accountMeta(vaultPubkey, false),
-    accountMeta(SystemProgram.programId, false),
+    accountMetaReadonly(SystemProgram.programId, false),
   ]
 
   const ix = new TransactionInstruction({
@@ -79,6 +92,69 @@ async function main() {
   await connection.confirmTransaction(sig, 'confirmed')
 
   console.error(`Transaction ${sig} succeeded`)
+
+  const payerBuf = JSON.stringify(Array.from(payer.secretKey))
+  await fs.writeFile(path.join(__dirname, 'payer.json'), payerBuf)
+  const vaultBuf = JSON.stringify(Array.from(vaultPubkey.toBytes()))
+  await fs.writeFile(path.join(__dirname, 'vault.json'), vaultBuf)
+}
+
+async function withdrawFromVault(
+  payer: Keypair,
+  vaultPubkey: PublicKey,
+  lamports: number
+) {
+  const connection = new Connection(LOCALHOST, 'confirmed')
+
+  const ixData = {
+    instruction: 1,
+    vaultBumpSeed: 0, // not used
+    lamports,
+  }
+  const keys = [
+    accountMeta(payer.publicKey, true),
+    accountMeta(vaultPubkey, false),
+    accountMetaReadonly(SystemProgram.programId, false),
+  ]
+
+  const ix = new TransactionInstruction({
+    programId,
+    keys,
+    data: instructionDataStruct.serialize(ixData)[0],
+  })
+
+  const { blockhash } = await connection.getRecentBlockhash()
+  const tx = new Transaction({
+    recentBlockhash: blockhash,
+    feePayer: payer.publicKey,
+  }).add(ix)
+
+  const sig = await connection.sendTransaction(tx, [payer])
+  await connection.confirmTransaction(sig, 'confirmed')
+
+  console.error(`Transaction ${sig} succeeded`)
+}
+
+async function readJSON(file: string) {
+  const p = path.join(__dirname, file)
+  return JSON.parse(await fs.readFile(p, 'utf-8'))
+}
+
+async function main() {
+  const args = process.argv.slice(2)
+  const withdraw = args[0]
+  if (withdraw == null) return initVault()
+
+  const payerSecretKey = Uint8Array.from(await readJSON('./payer.json'))
+  const payer = Keypair.fromSecretKey(payerSecretKey)
+  addressLabels.addLabel('payer', payer)
+
+  const vaultBuffer = await readJSON('./vault.json')
+
+  const vault = new PublicKey(vaultBuffer)
+  addressLabels.addLabel('vault', vault)
+
+  return withdrawFromVault(payer, vault, parseInt(withdraw))
 }
 
 main()

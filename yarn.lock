@@ -42,10 +42,10 @@
   dependencies:
     "@hapi/hoek" "^9.0.0"
 
-"@metaplex-foundation/amman@^0.0.8":
-  version "0.0.8"
-  resolved "https://registry.yarnpkg.com/@metaplex-foundation/amman/-/amman-0.0.8.tgz#369cef90b00a2527434ebd996f5dc83441307792"
-  integrity sha512-9t2Pf6vNdZZClAyvh6MGxWLYMidkD+S7m1W8pocXQAplF6svWx4nrTXcoJXHvjtNncZhCkzD0aBajIZURDZUvw==
+"@metaplex-foundation/amman@^0.0.9":
+  version "0.0.9"
+  resolved "https://registry.yarnpkg.com/@metaplex-foundation/amman/-/amman-0.0.9.tgz#d150f426a971f6e7ddc4eea8aef284111fbd4d60"
+  integrity sha512-vRkNIZ+z9Ljkb2NCXoW5vazDk/Lx9THnK9XPAca+s5F/7c4bZhS4wADWqFuwEp1ZydhE0t1wHe13GMIMKjwDvg==
   dependencies:
     "@solana/spl-token" "^0.1.8"
     "@solana/web3.js" "^1.31.0"
